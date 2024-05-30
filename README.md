@@ -171,7 +171,15 @@ After that you will have another 2 files"
 ### 2.4 Prepare ```.ped``` file
 #### 2.4.1 Prepare bad SNPs list from ```.bed.unlifted``` and ```bad_lifted.dat``` file
 - How those 2 file look like?
-- ```.bed.unlifted```, 
+- ```.bed.unlifted```, which you can see the fourth column is the SNPs list, but there is also "#Deleted..." at interval that we dont want
+```
+#Deleted in new
+chr0	-1	0	10:46959974-CT
+#Deleted in new
+chr0	-1	0	10:46962104-GA
+#Deleted in new
+chr0	-1	0	10:46963852-TC
+```
 - ```bad_lifted.dat```, which you can see the second column is the SNPs list
 ```
 8_gl000196_random	JHU_8.48229038	0.0	2819
@@ -179,13 +187,42 @@ After that you will have another 2 files"
 8_gl000196_random	JHU_8.48228030	0.0	1811
 8_gl000196_random	JHU_8.48227941	0.0	1722
 ```
+Now get the SNPs list file 
 ```
 %%bash
 WORK_DIR='/home/jupyter/QC'
 cd $WORK_DIR
 
 cut -f 2 /home/jupyter/QC/bad_lifted.dat > /home/jupyter/QC/to_exclude.dat
+#means ^#: Matches the start of a line (^) followed by a hash (#) and d to delete those line, to remove the line with "#Deleted..." and keep the $4 only
 cut -f 4 /home/jupyter/QC/GP2_merge_all_updated_lifted.bed.unlifted | sed "/^#/d" >> /home/jupyter/QC/to_exclude.dat 
 
 ```
+#### 2.4.2 Get the updated ```.ped``` file
+```
+%%bash
+WORK_DIR='/home/jupyter/QC'
+cd $WORK_DIR
 
+/home/jupyter/plink1.9 \
+--bfile GP2_merge_all_updated \ #use the original bfile as in 2.1 
+--recode \
+--exclude to_exclude.dat \ #use the list prepared in 2.4.1
+--out lifted_excluded
+```
+- Now you will get a new ```.ped``` and ```.map``` file, [IGNORE] the ```.map``` file and just use the ```.ped``` file here
+
+### 2.5 Convert the lifted ```.ped``` and ```.map``` file to .bim .fam .bed
+```
+%%bash
+WORK_DIR='/home/jupyter/QC'
+cd $WORK_DIR
+
+/home/jupyter/plink1.9 \
+--ped lifted_excluded.ped \ #prepared in 2.4.2
+--map GP2_merge_all_updated_lifted_good.map \ #prepared in 2.3
+--make-bed \
+--out GP2_merge_all_updated_lifted_hg19
+```
+
+We are done! Congrates to make to this step!
